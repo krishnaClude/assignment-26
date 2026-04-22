@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  RECRUITER
+}
+
+model User {
+  id           String          @id @default(cuid())
+  email        String          @unique
+  passwordHash String
+  role         Role            @default(RECRUITER)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  jobs         Job[]
+  resumes      Resume[]
+}
+
+model Job {
+  id                 String           @id @default(cuid())
+  title              String
+  description        String           @db.Text
+  requiredSkills     Json
+  minExperienceYears Int              @default(0)
+  userId             String
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  candidateMatches   CandidateMatch[]
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+}
+
+model Resume {
+  id               String           @id @default(cuid())
+  fileUrl          String
+  rawText          String           @db.LongText
+  parsedData       Json
+  userId           String
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  candidateMatches CandidateMatch[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+model CandidateMatch {
+  id            String   @id @default(cuid())
+  resumeId      String
+  jobId         String
+  score         Int
+  insights      Json
+  missingSkills Json
+  strengths     Json
+  createdAt     DateTime @default(now())
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([resumeId, jobId])
+  @@index([jobId, score])
+}
